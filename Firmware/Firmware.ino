@@ -50,7 +50,7 @@ void setup() {
 
 void loop() {
   // Main loop
-  if (millis()-lastLock > 600){
+  if (millis()-lastLock > 800){
     flagCurveLock = true;
   }
   LineFollower.loop();
@@ -286,7 +286,7 @@ void pid_control(int motor_speed, int sensor_value) {
   integral += (i_gain * error)/1000;
   derivative = d_gain * (error - last_error)*motor_speed/75;
 
-  float delta_speed = (proportional + derivative + integral);
+  float delta_speed = (proportional + derivative);
   if (motor_speed + delta_speed < speed_limit && motor_speed > 0) {
     setMotorAVoltage((motor_speed - delta_speed)*0.942);
     setMotorBVoltage(motor_speed + delta_speed);
@@ -305,7 +305,7 @@ void pid_control_curve(int motor_speedA, int motor_speedB, int sensor_value) {
   derivative = d_gain * (error - last_error)*abs(motor_speedB)/35;
 
   float delta_speed = (proportional + derivative + integral);
-  if (abs(motor_speedB) + delta_speed < speed_limit && motor_speed > 0) {
+  if (abs(motor_speedB) + delta_speed < speed_limit) {
     setMotorAVoltage((motor_speedA - delta_speed)*0.942);
     setMotorBVoltage(motor_speedB + delta_speed);
   }
