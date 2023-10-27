@@ -33,6 +33,7 @@ float kp;
 int ref = 120;
 bool flagCurveLock = true;
 float lastLock = millis();
+bool detectedObstacle = false;
 
 // BOTAR TODA ESSA TRALHA EM UMA FUNCAO PRA NAO FICAR FEIO
 
@@ -54,7 +55,14 @@ void setup() {
 void loop() {
   // Main loop
   float dist = ultraSensor.distanceCm();
-  Serial.print(ultraSensor.distanceCm() );
+  if (dist < 25){
+    detectedObstacle = true;
+    while (detectedObstacle){
+
+    }
+  }
+
+  
   while (dist < 25){
     
     setMotorAVoltage((0)*0.942);
