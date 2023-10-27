@@ -60,6 +60,10 @@ void loop() {
   static int ref = 190;  // reference signal
   ang = gyro.getAngleZ();
   int u = ref;  // control signal
+  int uAd = -25;
+  int uBd = 25;
+  int uAe = -uAd;
+  int uBe = -uBd;
 
   //waitNextPeriod();
 
@@ -107,20 +111,16 @@ void loop() {
 
     else if (offset>=10 && flagCurveLock){
 
-    uA = -45;
-	uB = 45;
     kp = 0.08;
     LineFollower.setKp(kp);
-    pid_control_curve(uA, uB,offset);
+    pid_control_curve(uAd, uBd,offset);
 	}
 	
 	else if (offset <= -10 && flagCurveLock){
 
-    uA = 45;
-	uB = -45;
     kp = 0.08;
     LineFollower.setKp(kp);
-    pid_control_curve(uA, uB,offset);
+    pid_control_curve(uAe, uBe,offset);
     }
 
     else {
@@ -153,20 +153,16 @@ void loop() {
     }
     else if (offset>=10 && flagCurveLock){
 
-    uA = -45;
-	uB = 45;
     kp = 0.08;
     LineFollower.setKp(kp);
-    pid_control_curve(uA, uB,offset);
+    pid_control_curve(uAd, uBd,offset);
 	}
 	
 	else if (offset <= -10 && flagCurveLock){
 
-    uA = 45;
-	uB = -45;
     kp = 0.08;
     LineFollower.setKp(kp);
-    pid_control_curve(uA, uB,offset);
+    pid_control_curve(uAe, uBe,offset);
     }
 
     else {
@@ -200,20 +196,16 @@ void loop() {
 
     else if (offset>=10 && flagCurveLock){
 
-    uA = -45;
-	uB = 45;
     kp = 0.08;
     LineFollower.setKp(kp);
-    pid_control_curve(uA, uB,offset);
+    pid_control_curve(uAd, uBd,offset);
 	}
 	
 	else if (offset <= -10 && flagCurveLock){
 
-    uA = 45;
-	uB = -45;
     kp = 0.08;
     LineFollower.setKp(kp);
-    pid_control_curve(uA, uB,offset);
+    pid_control_curve(uAe, uBe,offset);
     }
 
     else {
@@ -247,20 +239,16 @@ void loop() {
 
    else if (offset>=10 && flagCurveLock){
 
-    uA = -45;
-	uB = 45;
     kp = 0.08;
     LineFollower.setKp(kp);
-    pid_control_curve(uA, uB,offset);
+    pid_control_curve(uAd, uBd,offset);
 	}
 	
 	else if (offset <= -10 && flagCurveLock){
 
-    uA = 45;
-	uB = -45;
     kp = 0.08;
     LineFollower.setKp(kp);
-    pid_control_curve(uA, uB,offset);
+    pid_control_curve(uAe, uBe,offset);
     }
 
     else {
