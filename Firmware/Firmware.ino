@@ -105,14 +105,23 @@ void loop() {
       flagCurveLock = false;
     }
 
-    else if ((offset>=10 || offset <= -10) && flagCurveLock){
+    else if (offset>=10 && flagCurveLock){
 
-    u = 45;
+    uA = -45;
+	uB = 45;
     kp = 0.08;
     LineFollower.setKp(kp);
-    pid_control_curve(u,offset);
-    
-  }
+    pid_control_curve(uA, uB,offset);
+	}
+	
+	else if (offset <= -10 && flagCurveLock){
+
+    uA = 45;
+	uB = -45;
+    kp = 0.08;
+    LineFollower.setKp(kp);
+    pid_control_curve(uA, uB,offset);
+    }
 
     else {
       u = 150;
@@ -142,14 +151,23 @@ void loop() {
       lastLock = millis();
       flagCurveLock = false;
     }
-    else if ((offset>=10 || offset <= -10) && flagCurveLock){
+    else if (offset>=10 && flagCurveLock){
 
-    u = 45;
+    uA = -45;
+	uB = 45;
     kp = 0.08;
     LineFollower.setKp(kp);
-    pid_control_curve(u,offset);
-    
-  }
+    pid_control_curve(uA, uB,offset);
+	}
+	
+	else if (offset <= -10 && flagCurveLock){
+
+    uA = 45;
+	uB = -45;
+    kp = 0.08;
+    LineFollower.setKp(kp);
+    pid_control_curve(uA, uB,offset);
+    }
 
     else {
       u = 150;
@@ -180,14 +198,23 @@ void loop() {
       flagCurveLock = false;
     }
 
-    else if ((offset>=10 || offset <= -10) && flagCurveLock){
+    else if (offset>=10 && flagCurveLock){
 
-    u = 45;
+    uA = -45;
+	uB = 45;
     kp = 0.08;
     LineFollower.setKp(kp);
-    pid_control_curve(u,offset);
-    
-  }
+    pid_control_curve(uA, uB,offset);
+	}
+	
+	else if (offset <= -10 && flagCurveLock){
+
+    uA = 45;
+	uB = -45;
+    kp = 0.08;
+    LineFollower.setKp(kp);
+    pid_control_curve(uA, uB,offset);
+    }
 
     else {
       u = 150;
@@ -197,35 +224,44 @@ void loop() {
     }
   }
 
-  else if (state == 3){
-    if ((ang >=-100) && (ang < 0) && (offset >=-30 || offset <= 30)){
-      u = 150;
-      kp = 0.04;
-      LineFollower.setKp(kp);
-      pid_control(u,offset);
-      state = 2;
-      lastLock = millis();
-      flagCurveLock = false;
+ else if (state == 3){
+   if ((ang >=-100) && (ang < 0) && (offset >=-30 || offset <= 30)){
+     u = 150;
+     kp = 0.04;
+     LineFollower.setKp(kp);
+     pid_control(u,offset);
+     state = 2;
+     lastLock = millis();
+     flagCurveLock = false;
 
-    }
-    else if ((ang <=100) && (ang > 0) && (offset >=-30 || offset <= 30)){
-      u = 150;
-      kp = 0.04;
-      LineFollower.setKp(kp);
-      pid_control(u,offset);
-      state = 1;
-      lastLock = millis();
-      flagCurveLock = false;
-    }
+   }
+   else if ((ang <=100) && (ang > 0) && (offset >=-30 || offset <= 30)){
+     u = 150;
+     kp = 0.04;
+     LineFollower.setKp(kp);
+     pid_control(u,offset);
+     state = 1;
+     lastLock = millis();
+     flagCurveLock = false;
+   }
 
-    else if ((offset>=10 || offset <= -10) && flagCurveLock){
+   else if (offset>=10 && flagCurveLock){
 
-    u = 45;
+    uA = -45;
+	uB = 45;
     kp = 0.08;
     LineFollower.setKp(kp);
-    pid_control_curve(u,offset);
-    
-  }
+    pid_control_curve(uA, uB,offset);
+	}
+	
+	else if (offset <= -10 && flagCurveLock){
+
+    uA = 45;
+	uB = -45;
+    kp = 0.08;
+    LineFollower.setKp(kp);
+    pid_control_curve(uA, uB,offset);
+    }
 
     else {
       u = 150;
@@ -272,18 +308,18 @@ void pid_control(int motor_speed, int sensor_value) {
   
 }
 
-void pid_control_curve(int motor_speed, int sensor_value) {
+void pid_control_curve(int motor_speedA, int motor_speedB, int sensor_value) {
   //setMotorAVoltage(0);
   //setMotorBVoltage(0);
   int error = sensor_value; // between -512 and 512
-  proportional = p_gain_curve * (error)*motor_speed/30; // replace 10 by max value of steering fct
+  proportional = p_gain_curve * (error)*abs(motor_speedB)/30; // replace 10 by max value of steering fct
   integral += (i_gain * error)/500;
-  derivative = d_gain * (error - last_error)*motor_speed/35;
+  derivative = d_gain * (error - last_error)*abs(motor_speedB)/35;
 
   float delta_speed = (proportional + derivative + integral);
-  if (motor_speed + delta_speed < speed_limit && motor_speed > 0) {
-    setMotorAVoltage((motor_speed - delta_speed)*0.942);
-    setMotorBVoltage(motor_speed + delta_speed);
+  if (abs(motor_speedB) + delta_speed < speed_limit && motor_speed > 0) {
+    setMotorAVoltage((motor_speedA - delta_speed)*0.942);
+    setMotorBVoltage(motor_speedB + delta_speed);
   }
   last_error = error;
   //Serial.println(delta_speed);
