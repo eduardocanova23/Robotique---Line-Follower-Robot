@@ -13,10 +13,10 @@
 #include <Arduino.h>
 #include <Wire.h>
 #include <SoftwareSerial.h>
-#include <MeAuriga.h>
+//#include <MeAuriga.h>
 #include "MeRGBLineFollower.h"
 #include "MeUltrasonicSensor.h"
-//#include "MeMegaPi.h"
+#include "MeMegaPi.h"
 
 MeUltrasonicSensor ultraSensor(PORT_8);
 MeCompass MeCompass(PORT_6, ADDRESS3);
@@ -33,6 +33,9 @@ float kp;
 int ref = 120;
 bool flagCurveLock = true;
 float lastLock = millis();
+
+// BOTAR TODA ESSA TRALHA EM UMA FUNCAO PRA NAO FICAR FEIO
+
 void setup() {
   
 
@@ -50,6 +53,14 @@ void setup() {
 
 void loop() {
   // Main loop
+  float dist = ultraSensor.distanceCm();
+  Serial.print(ultraSensor.distanceCm() );
+  while (dist < 25){
+    
+    setMotorAVoltage((0)*0.942);
+    setMotorBVoltage(0);
+    dist = ultraSensor.distanceCm();
+  }
   if (millis()-lastLock > 600){
     flagCurveLock = true;
   }
@@ -281,7 +292,7 @@ void pid_control_curve(int motor_speed, int sensor_value) {
   derivative = d_gain * (error - last_error)*motor_speed/35;
 
   float delta_speed = (proportional + derivative + integral);
-  if (motor_speed + delta_speed < speed_limit && motor_speed > 0) {
+  if (motor_speed + delta_speed < speed_limit) {
     setMotorAVoltage((motor_speed - delta_speed)*0.942);
     setMotorBVoltage(motor_speed + delta_speed);
   }
