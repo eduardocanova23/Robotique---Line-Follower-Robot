@@ -1,12 +1,3 @@
-/*
- * Main file
- * 
- * apply a duty cycle of 255/ref to the motor1 (PWM) where ref is a value obtained from the serial port (in ascii format) 
- * send back the actual position of the motor shaft (in pulses).
- * 
- */
-
-
 #include "Motors.h"
 #include "Encoders.h"
 #include "PID.h"
@@ -23,7 +14,12 @@ MeCompass MeCompass(PORT_6, ADDRESS3);
 MeRGBLineFollower LineFollower(PORT_7, ADDRESS1);
 MeGyro gyro;
 int state = 0;
+// state 0 straight line
+// state 1 do a curve
+// state 2 dodge the object
+// state 3 wait the other car to pass
 float ang;
+float lastang;
 #define DT 50  //sampling period in milliseconds
 float offset;
 #define speed_limit 280
@@ -34,6 +30,10 @@ int ref = 120;
 bool flagCurveLock = true;
 float lastLock = millis();
 bool detectedObstacle = false;
+int uAd = -25;
+int uBd = 25;
+int uAe = -uAd;
+int uBe = -uBd;
 
 // BOTAR TODA ESSA TRALHA EM UMA FUNCAO PRA NAO FICAR FEIO
 
@@ -55,21 +55,8 @@ void setup() {
 void loop() {
   // Main loop
   float dist = ultraSensor.distanceCm();
-  if (dist < 25){
-    detectedObstacle = true;
-    while (detectedObstacle){
-
-    }
-  }
-
   
-  while (dist < 25){
-    
-    setMotorAVoltage((0)*0.942);
-    setMotorBVoltage(0);
-    dist = ultraSensor.distanceCm();
-  }
-  if (millis()-lastLock > 600){
+  if (millis()-lastLock > 700){
     flagCurveLock = true;
   }
   LineFollower.loop();
@@ -82,198 +69,104 @@ void loop() {
 
   //waitNextPeriod();
 
-  Serial.println(offset);
-  Serial.println(state);
-  Serial.println(ang);
+  //Serial.println(offset);
+  //Serial.println(state);
+  //Serial.println(ang);
 
   // get the new reference from the serial port is any.
   if (Serial.available() > 1) {  // something to read ?
     ref = Serial.parseInt();     // parse the value (ascii -> int)
   }
-/*
-  if (ang <= 45 && ang >= -45){
-    state = 0;
-  }
-  else if (ang <= -45 && ang >= -135){
-    state = 2;
-  }
-  else if (ang >= 45 && ang <= 135){
-    state = 1;
-  }
-  else if (ang >= 135 || ang <= -135){
-    state = 3;
-  }
-*/
-  if (state == 0){
-    if ((ang >= 80 ) && (offset >=-30 || offset <= 30)){
-      u = 150;
-      kp = 0.04;
-      LineFollower.setKp(kp);
-      pid_control(u,offset);
-      state = 1;
-      lastLock = millis();
-      flagCurveLock = false;
-    }
-    else if ((ang <= -80 ) && (offset >=-30 || offset <= 30)){
-      u = 150;
-      kp = 0.04;
-      LineFollower.setKp(kp);
-      pid_control(u,offset);
-      state = 2;
-      lastLock = millis();
-      flagCurveLock = false;
+
+  while (state == 0){
+    LineFollower.setKp(0.04);
+    LineFollower.loop();
+    int offset = LineFollower.getPositionOffset();
+
+    gyro.update();
+    ang = gyro.getAngleZ();
+
+    float dist = ultraSensor.distanceCm();
+
+    pid_control(160,offset);
+
+    if (millis()-lastLock > 600){
+      // if some time passed since last lock, unlock the curve
+      flagCurveLock = true;
     }
 
-    else if ((offset>=10 || offset <= -10) && flagCurveLock){
+    if ((offset>=13 || offset <= -13) && flagCurveLock){
+      state = 1; // starting to detect the curve -> change the state to curve
+    }
 
-    u = 45;
-    kp = 0.08;
-    LineFollower.setKp(kp);
-    pid_control_curve(u,offset);
+    if (dist < 15){
+      state = 2; // detected obstacle -> change the state to dodge
+    }
+
+  }
+
+  lastang = gyro.getAngleZ();
+  delay(70);
+
+  float timebeforecurve = millis();
+  while (state == 1 && flagCurveLock){
+    LineFollower.loop();
+    LineFollower.setKp(0.08);
+    int offset = LineFollower.getPositionOffset();
+
+    gyro.update();
+    ang = gyro.getAngleZ();
     
-  }
-
-    else {
-      u = 150;
-      kp = 0.04;
-      LineFollower.setKp(kp);
-      pid_control(u,offset);
-    }
-    
-  } 
-
-  else if (state == 1){
-    if (ang <=10 && (offset >=-30 || offset <= 30)){
-      u = 150;
-      kp = 0.04;
-      LineFollower.setKp(kp);
-      pid_control(u,offset);
-      state = 0;
-      lastLock = millis();
-      flagCurveLock = false;
-    }
-    else if (ang >=170 && (offset >=-30 || offset <= 30)){
-      u = 150;
-      kp = 0.04;
-      LineFollower.setKp(kp);
-      pid_control(u,offset);
-      state = 3;
-      lastLock = millis();
-      flagCurveLock = false;
-    }
-    else if ((offset>=10 || offset <= -10) && flagCurveLock){
-
-    u = 45;
-    kp = 0.08;
-    LineFollower.setKp(kp);
-    pid_control_curve(u,offset);
-    
-  }
-
-    else {
-      u = 150;
-      kp = 0.04;
-      LineFollower.setKp(kp);
-      pid_control(u,offset);
+    if (offset > 0){
+      pid_control_curve(-25,25,offset);
     }
 
-  }
-
-  else if (state == 2){
-    if (ang <=-170 && (offset >=-30 || offset <= 30)){
-      u = 150;
-      kp = 0.04;
-      LineFollower.setKp(kp);
-      pid_control(u,offset);
-      state = 3;
-      lastLock = millis();
-      flagCurveLock = false;
-    }
-    else if (ang >=-10  && (offset >=-30 || offset <= 30)){
-      u = 150;
-      kp = 0.04;
-      LineFollower.setKp(kp);
-      pid_control(u,offset);
-      state = 0;
-      lastLock = millis();
-      flagCurveLock = false;
-    }
-
-    else if ((offset>=10 || offset <= -10) && flagCurveLock){
-
-    u = 45;
-    kp = 0.08;
-    LineFollower.setKp(kp);
-    pid_control_curve(u,offset);
-    
-  }
-
-    else {
-      u = 150;
-      kp = 0.04;
-      LineFollower.setKp(kp);
-      pid_control(u,offset);
-    }
-  }
-
-  else if (state == 3){
-    if ((ang >=-100) && (ang < 0) && (offset >=-30 || offset <= 30)){
-      u = 150;
-      kp = 0.04;
-      LineFollower.setKp(kp);
-      pid_control(u,offset);
-      state = 2;
-      lastLock = millis();
-      flagCurveLock = false;
-
-    }
-    else if ((ang <=100) && (ang > 0) && (offset >=-30 || offset <= 30)){
-      u = 150;
-      kp = 0.04;
-      LineFollower.setKp(kp);
-      pid_control(u,offset);
-      state = 1;
-      lastLock = millis();
-      flagCurveLock = false;
-    }
-
-    else if ((offset>=10 || offset <= -10) && flagCurveLock){
-
-    u = 45;
-    kp = 0.08;
-    LineFollower.setKp(kp);
-    pid_control_curve(u,offset);
-    
-  }
-
-    else {
-      u = 150;
-      kp = 0.04;
-      LineFollower.setKp(kp);
-      pid_control(u,offset);
-    }
-  }
-
-  
-  /*if (offset >= 23 || offset <= -23){
-    delay(delayt*10);
-    
-    if (offset>0){
-        setMotorAVoltage(-(0.25*u*0.942));
-        
-    }
     else{
-        setMotorBVoltage(-(0.25*u));
+      pid_control_curve(25,-25,offset);
     }
-    delay(320);
-  }
-  */
+    float dist = ultraSensor.distanceCm();
+    
 
+
+    if ((abs(abs(lastang) - abs(ang)) >= 82) && (offset >= -40 && offset <= 40)){ 
+      // if the difference between the angle when the curve started and now is 90, then change state
+      // and lock the curve for some time 
+      state = 0;
+      flagCurveLock = false;
+      lastLock = millis();
+    }
+
+    if ((millis() - timebeforecurve) > 2000){
+      state = 0;
+      flagCurveLock = false;
+      lastLock = millis();
+    }
+
+    if (dist < 15){
+      state = 2; // detected obstacle -> change the state to dodge
+    }
+  }
+
+  float timebeforedodge = millis();
+  while (state == 2 &&  (millis() - timebeforedodge < 3000)){
+
+
+    LineFollower.loop();
+    int offset = LineFollower.getPositionOffset();
+
+    gyro.update();
+    ang = gyro.getAngleZ();
+    
+    float dist = ultraSensor.distanceCm();
+
+    LineFollower.setKp(0.08);
+    pid_control_dodge(25,offset);
+
+  }
   //setMotorBVoltage(u);
   //setMotorAVoltage(0.942*u);
   
 }
-//COMENTEI AQUI
 
 void pid_control(int motor_speed, int sensor_value) {
   int error = sensor_value; // between -512 and 512
@@ -291,7 +184,28 @@ void pid_control(int motor_speed, int sensor_value) {
   
 }
 
-void pid_control_curve(int motor_speed, int sensor_value) {
+void pid_control_curve(int motor_speedA, int motor_speedB, int sensor_value) {
+  //setMotorAVoltage(0);
+  //setMotorBVoltage(0);
+  int error = sensor_value; // between -512 and 512
+  proportional = p_gain_curve * (error)*abs(motor_speedB)/30; // replace 10 by max value of steering fct
+  integral += (i_gain * error)/500;
+  derivative = d_gain * (error - last_error)*abs(motor_speedB)/35;
+
+  float delta_speed = (proportional + derivative + integral);
+  if (abs(motor_speedB) + delta_speed < speed_limit) {
+    setMotorAVoltage((motor_speedA - delta_speed)*0.942);
+    setMotorBVoltage(motor_speedB + delta_speed);
+  }
+  last_error = error;
+  if ((motor_speedA < 10 && motor_speedB < 10) || error == 0){
+    state = 0;
+    flagCurveLock = false;
+    lastLock = millis();
+  }
+}
+
+void pid_control_dodge(int motor_speed, int sensor_value) {
   //setMotorAVoltage(0);
   //setMotorBVoltage(0);
   int error = sensor_value; // between -512 and 512
